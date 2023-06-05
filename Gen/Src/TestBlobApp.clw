@@ -23,6 +23,7 @@ Main                   PROCEDURE   !Main
    END
 
 UpdateType           CSTRING('Clarion<0>{13}')
+glo:ConnectString    CSTRING(256)
 DisplayLog           CSTRING(4096)
 SilentRunning        BYTE(0)                               ! Set true when application is running in 'silent mode'
 

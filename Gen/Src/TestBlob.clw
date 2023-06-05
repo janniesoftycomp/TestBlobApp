@@ -18,8 +18,7 @@ BlobSize LONG
 DataSize LONG
 blobRef &Blob
 
-!BlobTestTableHub      FILE,DRIVER('MSSQL','/BUSYHANDLING=2 /ZERODATE=0'),OWNER('jannie-dell,ghphoto,ghp,ghp'),NAME('dbo.BlobTestTableHub'),PRE(BT),CREATE,BINDABLE,THREAD 
-BlobTestTableHub       FILE,DRIVER('MSSQL'),OWNER('jannie-dell,ghphoto,ghp,ghp'),NAME('dbo.BlobTestTableHub'),PRE(BT),CREATE 
+BlobTestTableHub       FILE,DRIVER('MSSQL'),OWNER(glo:ConnectString),NAME('dbo.BlobTestTableHub'),PRE(BT),CREATE 
 PK                     KEY(BT:C1_Long),NOCASE,PRIMARY                         
 C2_Blob                     BLOB                                                
 Record                   RECORD,PRE()
@@ -30,7 +29,7 @@ C3_Long                     LONG
 UpdateAction    Byte
 
 
-ClarionSqlConn       FILE,DRIVER('MSSQL'),OWNER('jannie-dell,ghphoto,ghp,ghp'),NAME('dbo.ClarionSqlConn'),PRE(CSC),CREATE 
+ClarionSqlConn       FILE,DRIVER('MSSQL'),OWNER(glo:ConnectString),NAME('dbo.ClarionSqlConn'),PRE(CSC),CREATE 
 PK                     KEY(CSC:int1),NOCASE,PRIMARY                         
 Record                   RECORD,PRE()
 int1                     LONG 
@@ -50,10 +49,14 @@ FileExists       PROCEDURE(),BYTE
 
   CODE
 !
+      Glo:ConnectString = 'server,db,usr,pwd'
+      
       Clear(DisplayLog)      
       
       Util.OpenTable(BlobTestTableHub)
       Util.FetchFirstRecord()
+      
+      
             
 
                                                                            Util.AddDebugLog('blobRef &= BlobTestTableHub.C2_Blob')
@@ -82,8 +85,10 @@ FileExists       PROCEDURE(),BYTE
                                                                            Util.AddDebugLog('BlobSize: '& BlobSize)                               ! 2
                                                                            Util.AddDebugLog('DataSize: '& DataSize)                               ! 2
                                                                            Util.AddDebugLog('blobRef[0:BlobSize-1]: '& blobRef[0:BlobSize-1])     ! bb
-                                                                           
-      Util.UpdateTable()                                                                     
+      
+      
+      Util.UpdateTable()    
+      
       
                                                                            Util.AddDebugLog('Close Tables')       
       CLOSE (BlobTestTableHub)
@@ -93,14 +98,11 @@ FileExists       PROCEDURE(),BYTE
 
 
 Util.OpenTable      PROCEDURE (*File pFile)
-e byte
   CODE
                                                                            Util.AddDebugLog('Open '&pFile{PROP:Name}&'')
   LOOP 2 TIMES                                                             ! Crude, but it works - especially if the Sql table is deleted - Clarion OPEN statement does not report an error. 
       CLOSE(pFile)
-      e = Util.FileExists() 
-                                                                           !Util.AddDebugLog('Exists: '& e &'')
-      IF NOT e
+      IF NOT Util.FileExists() 
                                                                            Util.AddDebugLog('Create: '&pFile{PROP:Name}&'')
          CREATE(pFile) 
       END      
@@ -154,11 +156,10 @@ Util.UpdateTable    PROCEDURE
       END  
 
 Util.FileExists PROCEDURE()
-   CODE
-                                                                         
+   CODE                                                                         
    
    SELF.ExecSql('SELECT OBJECT_ID(''BlobTestTableHub'')', 0)
-   Next(ClarionSqlConn)
+   NEXT(ClarionSqlConn)
                                                                            Util.AddDebugLog('Ojbect Id: '& ClarionSqlConn.int1)
    IF ClarionSqlConn.int1 > 0
       RETURN 1
@@ -171,8 +172,7 @@ Util.ExecSql       PROCEDURE(STRING pSqlText, BYTE pMute)
    CODE   
    
    CREATE(ClarionSqlConn)   
-   OPEN(ClarionSqlConn)   
-  
+   OPEN(ClarionSqlConn)     
    ClarionSqlConn{PROP:SQL} = pSqlText
    IF ERRORCODE() AND NOT pMute
                                                                           Util.AddDebugLog('Sql Exec Error: '& ERROR())  
